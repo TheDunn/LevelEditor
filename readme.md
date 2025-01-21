@@ -1,4 +1,4 @@
-# Level Editor
+# Tile Based Level Editor
 
 A simple Level Editor for creating and managing game levels.
 
