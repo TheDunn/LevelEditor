@@ -6,30 +6,21 @@ This project is a Level Editor for creating and managing game levels.
 
 ## Features
 
-- Create new levels
-- Edit existing levels
-- Save and load levels
-- Export levels to JSON format
+- **Create New Levels**: Design levels from scratch.
+- **Edit Existing Levels**: Modify and enhance your current levels.
+- **Save and Load Levels**: Store your progress and continue later.
+- **Export to JSON**: Share your levels in a universal format.
 
 ## Getting Started
 
-To get started, open `index.html` in your web browser. This will launch the Level Editor interface.
+To begin, open `index.html` in your web browser. This will launch the Level Editor interface.
 
 ## Usage
 
-1. **Create a New Level**: Click on the "New Level" button to start designing a new level.
-2. **Edit Level**: Use the tools provided to add, remove, or modify elements within the level.
-3. **Save Level**: Click on the "Save" button to save your progress.
-4. **Load Level**: Use the "Load" button to open a previously saved level.
-5. **Export Level**: Click on the "Export" button to export the level in JSON format.
-
-## Requirements
-
-- A modern web browser (Chrome, Firefox, Edge, etc.)
-
-## Contributing
-
-Contributions are welcome! Please fork the repository and submit a pull request.
+1. **Create a New Level**: Enter the desired map dimensions, upload a tilesheet, and specify the tile size. Click "Generate" to split the tilesheet into tiles.
+2. **Edit Level**: Utilize the provided tools to add, remove, or modify elements within the level.
+3. **Export Level**: Click the "Export" button to save the level in JSON format.
+4. **Import Level**: Click the "Import" button to load a level from a JSON file.
 
 ## License
 
