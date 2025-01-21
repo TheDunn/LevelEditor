@@ -113,6 +113,7 @@
                         <div class="card-header">
                             <button id="fillMap" class="btn btn-primary btn-sm">Fill with currently selected</button>
                             <button id="undoButton" class="btn btn-secondary btn-sm">Undo</button>
+                            <button id="removeTile" class="btn btn-secondary btn-sm">Delete mode (off)</button>
                             <button id="resetZoom" class="btn btn-secondary btn-sm">Reset zoom</button>
 
                             <div style="float: right;">
@@ -133,13 +134,13 @@
 
     <script>
         // TODO //
-        // Delete tile button
         // Don't export level if entire level is null
 
         let currentLayer = 0;
         let maxLayers = 5;
         let selectedTile = null;
         let isMouseDown = false;
+        let deleteMode = false;
         let mapTiles = [];
         let historyStack = [];
         let tilesData = [];
@@ -182,7 +183,7 @@
 
                     tile.addEventListener('click', function() {
                         if (selectedTile && mapTiles[currentLayer][i][j]?.name !== selectedTile?.name) {
-                            mapTiles[currentLayer][i][j] = selectedTile;
+                            mapTiles[currentLayer][i][j] = deleteMode ? null : selectedTile;
                             renderLayerTiles();
                             saveMapState();
                         }
@@ -225,7 +226,7 @@
             function placeTile(e) {
                 const tile = e.target;
                 if (tile.classList.contains('tile') && selectedTile && tile.dataset.tile !== selectedTile.name) {
-                    mapTiles[currentLayer][tile.dataset.y][tile.dataset.x] = selectedTile;
+                    mapTiles[currentLayer][tile.dataset.y][tile.dataset.x] = deleteMode ? null : selectedTile;
                     renderLayerTiles();
                 }
             }
@@ -421,6 +422,15 @@
             );
             renderLayerTiles();
         }
+
+        // Delete mode
+        document.getElementById('removeTile').addEventListener('click', function() {
+            deleteMode = !deleteMode;
+
+            const button = this;
+            button.textContent = deleteMode ? 'Delete mode (on)' : 'Delete mode (off)';
+            button.className = deleteMode ? 'btn btn-sm btn-danger' : 'btn btn-sm btn-secondary';
+        });
 
         // Export
         document.getElementById('exportMap').addEventListener('click', exportTilemap);
