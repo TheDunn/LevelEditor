@@ -182,10 +182,9 @@
                     tile.style.height = `${tileSize}px`;
 
                     tile.addEventListener('click', function() {
-                        if (selectedTile && mapTiles[currentLayer][i][j]?.name !== selectedTile?.name) {
+                        if (selectedTile) {
                             mapTiles[currentLayer][i][j] = deleteMode ? null : selectedTile;
                             renderLayerTiles();
-                            saveMapState();
                         }
                     });
                     map.appendChild(tile);
@@ -225,7 +224,7 @@
 
             function placeTile(e) {
                 const tile = e.target;
-                if (tile.classList.contains('tile') && selectedTile && tile.dataset.tile !== selectedTile.name) {
+                if (tile.classList.contains('tile')) {
                     mapTiles[currentLayer][tile.dataset.y][tile.dataset.x] = deleteMode ? null : selectedTile;
                     renderLayerTiles();
                 }
