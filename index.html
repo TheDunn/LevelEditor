@@ -1,0 +1,554 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>Map Builder</title>
+        <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-EVSTQN3/azprG1Anm3QDgpJLIm9Nao0Yz1ztcQTwFspd3yD65VohhpuuCOmLASjC" crossorigin="anonymous">
+        <style>
+            #map {
+                display: grid;
+                background-color: lightgray;
+                border: 1px solid lightgray;
+                gap: var(--gap-size, 1px);
+                transform-origin: top left;
+                position: relative;
+                margin: auto;
+            }
+            .tile {
+                background-color: aliceblue;
+                cursor: pointer;
+                display: flex;
+                justify-content: center;
+                align-items: center;
+            }
+            .tile:hover {
+                border: 2px solid red;
+            }
+            .draggable-tile {
+                cursor: pointer;
+                width: 50px;
+                height: 50px;
+                -webkit-user-select: none !important;
+                user-select: none !important; 
+            }
+            .draggable-tile.selected {
+                border: 2px solid red;
+            } 
+            .draggable-tile:hover {
+                border: 2px solid red;
+            }
+            .mapRender {
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                justify-content: center;
+                position: relative;
+                overflow: auto;
+                padding: 10px;
+            }
+        </style>
+    </head>
+    <body>
+        <div class="col-lg-10 mx-auto p-3 py-md-5">
+            <div class="mb-3 card">  
+                <div class="card-header">
+                    <b>Configure map builder</b>
+                </div>
+                <div class="p-3">
+                    <div class="mb-3 row">
+                        <div class="col">
+                            <label class="form-label">Map dimensions</label> 
+                            <div class="row">
+                                <div class="col">
+                                    <input type="number" value="50" class="form-control" id="mapWidth" placeholder="Width">
+                                </div>
+                                <div class="col">
+                                    <input type="number" value="50" class="form-control" id="mapHeight" placeholder="Height">
+                                </div>
+                            </div>
+                        </div>        
+                        <div class="col">
+                            <label class="form-label">Upload tilemap</label>
+                            <input type="file" id="tilemapInput" class="form-control" accept="image/png">
+                        </div>
+                        <div class="row col">
+                            <div class="col">
+                                <label class="form-label">Tile size (Pixels)</label> 
+                                <input type="number" value="16" id="tileSize" class="form-control">
+                            </div>
+                            <div class="col">
+                                <label class="form-label">Gap (Pixels)</label> 
+                                <input type="number" value="1" id="gapSize" class="form-control">
+                            </div>
+                        </div>
+                    </div>
+                    <div>
+                        <button class="btn btn-primary" id="configureMap">Configure</button>
+                    </div>
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-lg-4">
+                    <div class="card mb-3">       
+                        <div class="card-header">
+                            <b>Available tiles</b>
+                        </div>
+                        <div id="tiles" class="p-3 d-flex flex-wrap gap-1">
+                        </div>
+                    </div>      
+                    <div class="card hidden" style="display: none;">       
+                        <div class="card-header">
+                            <b>Import/Export</b>
+                        </div>
+                        <div class="p-3">
+                            <button class="btn btn-primary" id="exportMap">Export to JSON</button>
+                            <div class="mt-3" >
+                                <label class="form-label">Import JSON</label>
+                                <input type="file" id="tilemapImport" class="form-control" accept="application/json" />
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-lg-8">
+                    <div id="mapWrapper" class="hidden card" style="display: none; position: relative;">
+                        <div class="card-header">
+                            <button id="fillMap" class="btn btn-primary btn-sm">Fill with currently selected</button>
+                            <button id="undoButton" class="btn btn-secondary btn-sm">Undo</button>
+                            <button id="resetZoom" class="btn btn-secondary btn-sm">Reset zoom</button>
+
+                            <div style="float: right;">
+                                <span>Current layer: <span id="layerDisplay"></span></span>&nbsp;
+                                <button id="downLayer" class="btn btn-secondary btn-sm">Down</button>
+                                <button id="upLayer" class="btn btn-secondary btn-sm">Up</button>
+                            </div>
+                        </div>
+                        <div class="p-3 mapRender">
+                            <div id="map" style="display: grid;">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </body>
+
+    <script>
+        // TODO //
+        // Delete tile button
+        // Decreased opacity on lower layers
+        // Don't export level if entire level is null
+
+        let currentLayer = 0;
+        let maxLayers = 5;
+        let selectedTile = null;
+        let isMouseDown = false;
+        let mapTiles = [];
+        let historyStack = [];
+        let tilesData = [];
+
+        function initializeMap(cols, rows) {
+            mapTiles = Array.from({ length: maxLayers + 1 }, () => 
+                Array.from({ length: rows }, () => Array(cols).fill(null))
+            );
+        }
+
+        document.getElementById('configureMap').addEventListener('click', function() {
+            const map = document.getElementById('map');
+            const tileSize = parseInt(document.getElementById('tileSize').value) || 0;
+            const gapSize = parseInt(document.getElementById('gapSize').value) || 0;
+            const cols = parseInt(document.getElementById('mapWidth').value) || 0;
+            const rows = parseInt(document.getElementById('mapHeight').value) || 0;
+            const file = document.getElementById('tilemapInput').files[0] || null;
+
+            if (!file) {
+                alert('Please select a file');
+                return;
+            }
+
+            configureTiles(file);
+            initializeMap(cols, rows);
+
+            map.innerHTML = '';
+            map.style.gridTemplateColumns = `repeat(${cols}, ${tileSize}px)`;
+            map.style.gridTemplateRows = `repeat(${rows}, ${tileSize}px)`;
+            map.style.setProperty('--gap-size', `${gapSize}px`);
+
+            for (let i = 0; i < rows; i++) {
+                for (let j = 0; j < cols; j++) {     
+                    const tile = document.createElement('div');
+                    tile.className = 'tile';
+                    tile.dataset.x = j;
+                    tile.dataset.y = i;
+                    tile.style.width = `${tileSize}px`;
+                    tile.style.height = `${tileSize}px`;
+
+                    tile.addEventListener('click', function() {
+                        if (selectedTile && mapTiles[currentLayer][i][j]?.name !== selectedTile?.name) {
+                            mapTiles[currentLayer][i][j] = selectedTile;
+                            renderLayerTiles();
+                            saveMapState();
+                        }
+                    });
+                    map.appendChild(tile);
+                }
+            }
+
+            //Handle mouse drag to place selected tile
+            map.addEventListener('mousedown', function (e) {
+                const tile = e.target;
+                if (tile.classList.contains('tile')) {
+                    isMouseDown = true;
+                    placeTile(e);
+                }
+            });
+
+            map.addEventListener('mousemove', function (e) {
+                const tile = e.target;
+                if (isMouseDown && selectedTile && tile.classList.contains('tile')) {
+                    placeTile(e);
+                }
+            });
+
+            map.addEventListener('mouseup', function () {
+                if (isMouseDown) {
+                    isMouseDown = false;
+                    saveMapState();
+                }
+            });
+
+            map.addEventListener('mouseleave', function () {
+                // Reset the state if the mouse leaves the map area while dragging
+                if (isMouseDown) {
+                    isMouseDown = false;
+                    saveMapState();
+                }
+            });
+
+            function placeTile(e) {
+                const tile = e.target;
+                if (tile.classList.contains('tile') && selectedTile && tile.dataset.tile !== selectedTile.name) {
+                    mapTiles[currentLayer][tile.dataset.y][tile.dataset.x] = selectedTile;
+                    renderLayerTiles();
+                }
+            }
+
+            saveMapState();
+            updateLayer();
+            Array.from(document.querySelectorAll('.hidden')).forEach(el => el.style.display = 'block');
+        });
+
+        function configureTiles(file) {
+            if (!file) return;
+
+            const tileSize = parseInt(document.getElementById('tileSize').value) || 16;
+            const gapSize = parseInt(document.getElementById('gapSize').value) || 0;   
+            const tilesContainer = document.getElementById('tiles');
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const img = new Image();
+                img.src = e.target.result;
+
+                img.onload = function() {
+                    const canvas = document.createElement('canvas');
+                    const context = canvas.getContext('2d');
+                    const tiles = [];
+
+                    canvas.width = img.width;
+                    canvas.height = img.height;
+                    context.drawImage(img, 0, 0);
+
+                    const rows = Math.ceil(img.height / (tileSize + gapSize));
+                    const cols = Math.ceil(img.width / (tileSize + gapSize));
+
+                    tilesContainer.innerHTML = '';
+                    tilesContainer.style.display = 'grid';
+                    tilesContainer.style.gridTemplateColumns = `repeat(auto-fill, ${tileSize}px)`;
+                    tilesContainer.style.gridGap = `1px`;
+
+                    for (let y = 0; y < rows; y++) {
+                        for (let x = 0; x < cols; x++) {
+                            const tileCanvas = document.createElement('canvas');
+                            const tileContext = tileCanvas.getContext('2d');
+
+                            tileCanvas.width = tileSize;
+                            tileCanvas.height = tileSize;
+
+                            tileContext.drawImage(
+                                canvas,
+                                x * (tileSize + gapSize),
+                                y * (tileSize + gapSize),
+                                tileSize,
+                                tileSize,
+                                0,
+                                0,
+                                tileSize,
+                                tileSize
+                            );
+
+                            const tileDataURL = tileCanvas.toDataURL();
+                            tiles.push(tileDataURL);
+
+                            const tileImg = document.createElement('img');
+                            const tileName = `tile_${x}_${y}`;
+                            tileImg.className = 'draggable-tile';
+                            tileImg.src = tileDataURL;
+                            tileImg.dataset.name = tileName;
+                            tileImg.style.width = `${tileSize}px`;
+                            tileImg.style.height = `${tileSize}px`;
+
+                            const tileData = {
+                                url: tileDataURL,
+                                name: tileName,
+                                x: x,
+                                y: y
+                            };
+
+                            tilesData.push(tileData);
+
+                            tileImg.addEventListener('click', function() {
+                                selectedTile = tileData;
+                                const allTiles = document.querySelectorAll('.draggable-tile');
+                                allTiles.forEach(img => img.classList.remove('selected'));
+                                tileImg.classList.add('selected');
+                            });
+
+                            tilesContainer.appendChild(tileImg);
+                        }
+                    }
+                };
+            };
+            reader.readAsDataURL(file);
+        }
+
+        document.getElementById('upLayer').addEventListener('click', function() {
+            if (currentLayer == maxLayers) return;
+            currentLayer += 1;
+            updateLayer();
+        });
+
+        document.getElementById('downLayer').addEventListener('click', function() {
+            if (currentLayer == 0) return;
+            currentLayer -= 1;
+            updateLayer();
+        });
+
+        function updateLayer() {
+            const display = document.getElementById('layerDisplay');
+            display.innerHTML = currentLayer;
+            renderLayerTiles();
+        }
+
+        function renderLayerTiles() {
+            const map = document.getElementById('map');
+            const tiles = document.getElementsByClassName('tile');
+            const tileSize = parseInt(document.getElementById('tileSize').value) || 0;
+            const cols = parseInt(document.getElementById('mapWidth').value) || 0;
+
+            mapTiles[0].forEach((row, rowIndex) => {
+                row.forEach((_, colIndex) => {
+                    const tileIndex = rowIndex * cols + colIndex;
+                    const tileCell = tiles[tileIndex];
+
+                    if (tileCell) {
+                        let backgrounds = [];
+                        let backgroundSizes = [];
+
+                        for (let layer = currentLayer > 0 ? currentLayer - 1 : 0; layer <= currentLayer; layer++) {
+                            const tile = mapTiles[layer][rowIndex]?.[colIndex];
+                            if (tile && tile.url) {
+                                backgrounds.push(`url(${tile.url})`);
+                                backgroundSizes.push(`${tileSize}px ${tileSize}px`);
+                            }
+                        }
+
+                        tileCell.style.backgroundImage = backgrounds.reverse().join(', ');
+                        tileCell.style.backgroundSize = backgroundSizes.reverse().join(', ');
+                        tileCell.style.backgroundBlendMode = 'normal';
+                    }
+                });
+            });
+        }
+
+        document.getElementById('fillMap').addEventListener('click', function() {
+            const tiles = document.getElementsByClassName('tile');
+            const cols = parseInt(document.getElementById('mapWidth').value) || 0;
+            const rows = parseInt(document.getElementById('mapHeight').value) || 0;
+
+        if (selectedTile) {
+                let makeUpdate = false;
+                for (let i = 0; i < rows; i++) {
+                    for (let j = 0; j < cols; j++) { 
+                        if (mapTiles[currentLayer][i][j]?.name == selectedTile?.name) continue;
+                        mapTiles[currentLayer][i][j] = selectedTile;
+                        makeUpdate = true;
+                    }
+                }
+                renderLayerTiles();
+                if (makeUpdate) saveMapState();
+            }
+        });
+
+        document.getElementById('undoButton').addEventListener('click', function() {
+            if (historyStack.length > 0) {
+                historyStack.pop();
+                const previousState = historyStack[historyStack.length - 1];
+                if (previousState) {
+                    restoreMapState(previousState);
+                }
+                if (historyStack.length === 0) {
+                    saveMapState();
+                }
+            }
+        });
+
+        function saveMapState() {
+            const currentState = mapTiles.map(layer => 
+                layer.map(row => row.slice()) 
+            );
+            historyStack.push(currentState);
+        }
+
+        function restoreMapState(state) {
+            mapTiles = state.map(layer => 
+                layer.map(row => row.slice()) 
+            );
+            renderLayerTiles();
+        }
+
+        // Export
+        document.getElementById('exportMap').addEventListener('click', exportTilemap);
+
+        function exportTilemap() {
+            const mapWidth = parseInt(document.getElementById('mapWidth').value) || 10;
+            const mapHeight = parseInt(document.getElementById('mapHeight').value) || 10;
+
+            let tilemap = [];
+
+            for (let layerIndex = 0; layerIndex <= maxLayers; layerIndex++) {
+                let layer = [];
+
+                for (let row = 0; row < mapHeight; row++) {
+                    let tileRow = [];
+                    for (let col = 0; col < mapWidth; col++) {
+                        const tile = mapTiles[layerIndex][row][col];
+                        tileRow.push(tile ? tile.name : null);
+                    }
+                    layer.push(tileRow);
+                }
+
+                tilemap.push(layer);
+            }
+            const json = JSON.stringify(tilemap);
+            const blob = new Blob([json], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'tilemap.json';
+            a.click();
+
+            URL.revokeObjectURL(url);
+        }
+
+        //Import
+        document.getElementById('tilemapImport').addEventListener('change', importTilemap);
+
+        function importTilemap(event) {
+            const file = event.target.files[0]; 
+            if (!file) {
+                alert('Please select a valid JSON file.');
+                return;
+            }
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const json = e.target.result;
+                    const tilemap = JSON.parse(json);
+
+                    if (!Array.isArray(tilemap)) {
+                        alert('Invalid tilemap format.');
+                        return;
+                    }
+
+                    loadTilemap(tilemap);
+                } catch (error) {
+                    alert('Error parsing JSON file: ' + error.message);
+                }
+            };
+
+            reader.readAsText(file);
+        }
+
+        function loadTilemap(tilemap) {
+            const mapWidth = parseInt(document.getElementById('mapWidth').value) || 0;
+            const mapHeight = parseInt(document.getElementById('mapHeight').value) || 0;
+
+            mapTiles = [];
+            initializeMap(mapWidth, mapHeight);
+
+            for (let layerIndex = 0; layerIndex <= maxLayers; layerIndex++) {
+                const layer = tilemap[layerIndex];
+                if (!Array.isArray(layer)) continue;
+
+                for (let row = 0; row < mapHeight; row++) {
+                    const rowData = layer[row];
+                    if (!Array.isArray(rowData)) continue;
+
+                    for (let col = 0; col < mapWidth; col++) {
+                        const tileName = rowData[col];
+                        const selectedTile = tilesData.find(tile => tile.name === tileName);
+                        if (selectedTile) {
+                            mapTiles[layerIndex][row][col] = selectedTile;
+                        }
+                    }
+                }
+            }
+
+            currentLayer = 0;
+            saveMapState();
+            updateLayer();
+
+            document.getElementById('tilemapImport').value = '';
+        }
+
+        // Zoom
+        let zoomLevel = 1;
+        const zoomStep = 0.1;
+        const zoomMin = 0.1;
+        const zoomMax = 3;
+        const map = document.getElementById('map');
+
+        document.querySelector('.mapRender').addEventListener('wheel', (e) => {
+            e.preventDefault();
+
+            const deltaZoom = e.deltaY < 0 ? zoomStep : -zoomStep;
+            zoomLevel = Math.min(Math.max(zoomLevel + deltaZoom, zoomMin), zoomMax);
+
+            map.style.transform = `scale(${zoomLevel})`;
+        });
+
+        document.getElementById('resetZoom').addEventListener('click', () => {
+            zoomLevel = 1;
+            map.style.transform = `scale(1)`;
+        });
+
+        const mapWrapper = document.getElementById('mapWrapper');
+        const mapRender = document.querySelector('.mapRender');
+
+        function adjustMapPadding() {
+            const mapWidth = map.offsetWidth;
+            const mapHeight = map.offsetHeight;
+            const renderWidth = mapRender.clientWidth;
+            const renderHeight = mapRender.clientHeight;
+
+            const horizontalPadding = Math.max((renderWidth - mapWidth) / 2, 0);
+            const verticalPadding = Math.max((renderHeight - mapHeight) / 2, 0);
+
+            mapRender.style.padding = `${verticalPadding}px ${horizontalPadding}px`;
+        }
+
+        window.addEventListener('resize', adjustMapPadding);
+        adjustMapPadding();
+    </script>
+</html>
