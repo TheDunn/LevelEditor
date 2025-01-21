@@ -1,6 +1,6 @@
 # Level Editor
 
-This project is a Level Editor for creating and managing game levels.
+A simple Level Editor for creating and managing game levels.
 
 ![Level Editor Screenshot](level.png)
 
