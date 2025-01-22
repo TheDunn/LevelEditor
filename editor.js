@@ -26,13 +26,14 @@ document.getElementById('configureMap').addEventListener('click', function() {
         return;
     }
 
+    tilesData = [];
     configureTiles(file);
     initializeMap(cols, rows);
 
     map.innerHTML = '';
     map.style.gridTemplateColumns = `repeat(${cols}, ${tileSize}px)`;
     map.style.gridTemplateRows = `repeat(${rows}, ${tileSize}px)`;
-    map.style.setProperty('--gap-size', `${gapSize}px`);
+    map.style.setProperty('--gap-size', `1px`);
 
     for (let y = 0; y < rows; y++) {
         for (let x = 0; x < cols; x++) {     
