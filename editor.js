@@ -16,7 +16,6 @@ function initializeMap(cols, rows) {
 document.getElementById('configureMap').addEventListener('click', function() {
     const map = document.getElementById('map');
     const tileSize = parseInt(document.getElementById('tileSize').value) || 0;
-    const gapSize = parseInt(document.getElementById('gapSize').value) || 0;
     const cols = parseInt(document.getElementById('mapWidth').value) || 0;
     const rows = parseInt(document.getElementById('mapHeight').value) || 0;
     const file = document.getElementById('tilemapInput').files[0] || null;
