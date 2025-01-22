@@ -37,18 +37,18 @@ document.getElementById('configureMap').addEventListener('click', function() {
     map.style.gridTemplateRows = `repeat(${rows}, ${tileSize}px)`;
     map.style.setProperty('--gap-size', `${gapSize}px`);
 
-    for (let i = 0; i < rows; i++) {
-        for (let j = 0; j < cols; j++) {     
+    for (let y = 0; y < rows; y++) {
+        for (let x = 0; x < cols; x++) {     
             const tile = document.createElement('div');
             tile.className = 'tile';
-            tile.dataset.x = j;
-            tile.dataset.y = i;
+            tile.dataset.x = x;
+            tile.dataset.y = y;
             tile.style.width = `${tileSize}px`;
             tile.style.height = `${tileSize}px`;
 
             tile.addEventListener('click', function() {
                 if (selectedTile) {
-                    mapTiles[currentLayer][i][j] = deleteMode ? null : selectedTile;
+                    mapTiles[currentLayer][y][x] = deleteMode ? null : selectedTile;
                     renderLayerTiles();
                 }
             });
@@ -242,16 +242,15 @@ function renderLayerTiles() {
 }
 
 document.getElementById('fillMap').addEventListener('click', function() {
-    const tiles = document.getElementsByClassName('tile');
     const cols = parseInt(document.getElementById('mapWidth').value) || 0;
     const rows = parseInt(document.getElementById('mapHeight').value) || 0;
 
-if (selectedTile) {
+    if (selectedTile) {
         let makeUpdate = false;
-        for (let i = 0; i < rows; i++) {
-            for (let j = 0; j < cols; j++) { 
-                if (mapTiles[currentLayer][i][j]?.name == selectedTile?.name) continue;
-                mapTiles[currentLayer][i][j] = selectedTile;
+        for (let y = 0; y < rows; y++) {
+            for (let x = 0; x < cols; x++) { 
+                if (mapTiles[currentLayer][y][x]?.name == selectedTile?.name) continue;
+                mapTiles[currentLayer][y][x] = selectedTile;
                 makeUpdate = true;
             }
         }
