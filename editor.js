@@ -294,6 +294,7 @@ document.getElementById('removeTile').addEventListener('click', function() {
 
 // Export
 document.getElementById('exportMap').addEventListener('click', exportTilemap);
+document.getElementById('exportTileData').addEventListener('click', exportTiles);
 
 function exportTilemap() {
     const mapWidth = parseInt(document.getElementById('mapWidth').value) || 10;
@@ -318,8 +319,6 @@ function exportTilemap() {
 
     toJson('level', tilemap);
 }
-
-document.getElementById('exportTileData').addEventListener('click', exportTiles);
 
 function exportTiles() {
     if (tilesData.length === 0) {
