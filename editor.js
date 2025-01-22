@@ -304,21 +304,22 @@ function exportTilemap() {
     const mapHeight = parseInt(document.getElementById('mapHeight').value) || 10;
 
     let tilemap = [];
-
     for (let layerIndex = 0; layerIndex <= maxLayers; layerIndex++) {
         let layer = [];
-
-        for (let row = 0; row < mapHeight; row++) {
-            let tileRow = [];
-            for (let col = 0; col < mapWidth; col++) {
-                const tile = mapTiles[layerIndex][row][col];
-                tileRow.push(tile ? tile.name : null);
+        for (let y = 0; y < mapHeight; y++) {
+            for (let x = 0; x < mapWidth; x++) {
+                const tile = mapTiles[layerIndex][y][x];
+                if (tile) layer.push({ name: tile.name, x, y });
             }
-            layer.push(tileRow);
         }
-
-        tilemap.push(layer);
+        if (layer.length > 0) tilemap.push(layer);
     }
+
+    if (tilemap.length === 0) {
+        alert('Nothing to export.');
+        return;
+    }
+
     const json = JSON.stringify(tilemap);
     const blob = new Blob([json], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
@@ -368,20 +369,28 @@ function loadTilemap(tilemap) {
     mapTiles = [];
     initializeMap(mapWidth, mapHeight);
 
-    for (let layerIndex = 0; layerIndex <= maxLayers; layerIndex++) {
+    for (let layerIndex = 0; layerIndex < tilemap.length; layerIndex++) {
         const layer = tilemap[layerIndex];
-        if (!Array.isArray(layer)) continue;
+        for (let tileIndex = 0; tileIndex < layer.length; tileIndex++) {
+            const tile = layer[tileIndex];
+            if (!tile) continue;
 
-        for (let row = 0; row < mapHeight; row++) {
-            const rowData = layer[row];
-            if (!Array.isArray(rowData)) continue;
-
-            for (let col = 0; col < mapWidth; col++) {
-                const tileName = rowData[col];
-                const selectedTile = tilesData.find(tile => tile.name === tileName);
+            if (
+                mapTiles[layerIndex] &&
+                mapTiles[layerIndex][tile.y] &&
+                mapTiles[layerIndex][tile.y][tile.x] !== undefined
+            ) {
+                const selectedTile = tilesData.find(candidateTile => candidateTile.name === tile.name);
+                console.log(selectedTile);
                 if (selectedTile) {
-                    mapTiles[layerIndex][row][col] = selectedTile;
+                    mapTiles[layerIndex][tile.y][tile.x] = selectedTile;
+                } else {
+                    console.warn(`Tile '${tile.name}' not found in tilesData.`);
                 }
+            } else {
+                console.warn(
+                    `Position [${tile.x}, ${tile.y}] in layer ${layerIndex} is not initialized in mapTiles.`
+                );
             }
         }
     }
