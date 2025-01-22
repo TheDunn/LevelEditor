@@ -26,6 +26,8 @@ document.getElementById('configureMap').addEventListener('click', function() {
     }
 
     tilesData = [];
+    currentLayer = 0;
+
     configureTiles(file);
     initializeMap(cols, rows);
 
@@ -92,7 +94,6 @@ document.getElementById('configureMap').addEventListener('click', function() {
         }
     }
 
-    currentLayer = 0;
     saveMapState();
     updateLayer();
     Array.from(document.querySelectorAll('.hidden')).forEach(el => el.style.display = 'block');
@@ -315,13 +316,33 @@ function exportTilemap() {
         return;
     }
 
-    const json = JSON.stringify(tilemap);
+    toJson('level', tilemap);
+}
+
+document.getElementById('exportTileData').addEventListener('click', exportTiles);
+
+function exportTiles() {
+    if (tilesData.length === 0) {
+        return;
+    }    
+
+    const filteredData = tilesData.map(tile => ({
+        name: tile.name,
+        x: tile.x,
+        y: tile.y
+    }));
+
+    toJson('tile_data', filteredData);
+}
+
+function toJson(fileName, data) {
+    const json = JSON.stringify(data, null, 2);
     const blob = new Blob([json], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
 
     const a = document.createElement('a');
     a.href = url;
-    a.download = 'tilemap.json';
+    a.download = `${fileName}.json`;
     a.click();
 
     URL.revokeObjectURL(url);
