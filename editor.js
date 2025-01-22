@@ -1,6 +1,3 @@
-// TODO //
-// Don't export level if entire level is null
-
 let currentLayer = 0;
 let maxLayers = 5;
 let selectedTile = null;
@@ -204,7 +201,6 @@ function updateLayer() {
 }
 
 function renderLayerTiles() {
-    const map = document.getElementById('map');
     const tiles = document.getElementsByClassName('tile');
     const tileSize = parseInt(document.getElementById('tileSize').value) || 0;
     const cols = parseInt(document.getElementById('mapWidth').value) || 0;
