@@ -294,7 +294,6 @@ document.getElementById('removeTile').addEventListener('click', function() {
 
 // Export
 document.getElementById('exportMap').addEventListener('click', exportTilemap);
-document.getElementById('exportTileData').addEventListener('click', exportTiles);
 
 function exportTilemap() {
     const mapWidth = parseInt(document.getElementById('mapWidth').value) || 10;
@@ -318,20 +317,6 @@ function exportTilemap() {
     }
 
     toJson('level', tilemap);
-}
-
-function exportTiles() {
-    if (tilesData.length === 0) {
-        return;
-    }    
-
-    const filteredData = tilesData.map(tile => ({
-        name: tile.name,
-        x: tile.x,
-        y: tile.y
-    }));
-
-    toJson('tile_data', filteredData);
 }
 
 function toJson(fileName, data) {
